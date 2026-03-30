@@ -1,4 +1,26 @@
+'use client'
+
+import { api } from '@/app/lib/api'
+import { useState } from 'react'
+
 export default function AIResearchDashboard() {
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
+
+  const handleSearch = async () => {
+    if (!query) return
+
+    setLoading(true)
+    try {
+      const res = await api.post('/research', { query })
+      setResult(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+    setLoading(false)
+  }
+
   const recentReports = [
     { title: 'Smart Traffic AI Market in India', status: 'Completed', date: '2h ago' },
     { title: 'Writesonic Competitor Intelligence', status: 'Processing', date: '6h ago' },
@@ -21,8 +43,9 @@ export default function AIResearchDashboard() {
           </div>
         </aside>
 
-        {/* Main content */}
+        {/* Main */}
         <main className="col-span-10 p-8">
+          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold">AI Research Agent</h2>
@@ -31,11 +54,43 @@ export default function AIResearchDashboard() {
             <button className="rounded-2xl bg-white text-slate-900 px-5 py-3 text-sm font-semibold shadow-2xl">New Research</button>
           </div>
 
-          {/* Prompt box */}
+          {/* Prompt Box (UPDATED) */}
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
             <p className="text-sm text-slate-400 mb-3">What would you like to research?</p>
-            <div className="rounded-2xl bg-slate-900 border border-white/10 p-4 text-slate-500">Research smart traffic vendors in India and compare pricing models...</div>
+
+            <div className="flex gap-3">
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Research smart traffic vendors in India..." className="flex-1 rounded-2xl bg-slate-900 border border-white/10 p-4 outline-none text-white" />
+
+              <button onClick={handleSearch} className="rounded-2xl bg-white text-slate-900 px-6 font-semibold">
+                {loading ? 'Thinking...' : 'Search'}
+              </button>
+            </div>
           </div>
+
+          {/* RESULT SECTION (NEW 🔥) */}
+          {result && (
+            <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6">
+              {/* Summary */}
+              <div>
+                <h3 className="text-lg font-semibold">Summary</h3>
+                <p className="mt-3 text-slate-300 whitespace-pre-line">{result.summary}</p>
+              </div>
+
+              {/* Sources */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold">Sources</h3>
+
+                <div className="mt-4 space-y-3">
+                  {result.sources?.map((s: any, i: number) => (
+                    <a key={i} href={s.url} target="_blank" className="block rounded-2xl border border-white/10 bg-slate-900/60 p-4 hover:bg-slate-800">
+                      <p className="font-medium">{s.title}</p>
+                      <p className="text-sm text-slate-400 truncate">{s.url}</p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="mt-8 grid grid-cols-3 gap-6">
@@ -51,9 +106,9 @@ export default function AIResearchDashboard() {
             ))}
           </div>
 
-          {/* Lower grid */}
+          {/* Bottom Grid */}
           <div className="mt-8 grid grid-cols-12 gap-6">
-            {/* Recent reports */}
+            {/* Recent Reports */}
             <section className="col-span-7 rounded-3xl border border-white/10 bg-white/5 p-6">
               <h3 className="text-lg font-semibold">Recent Reports</h3>
               <div className="mt-4 space-y-4">
@@ -69,7 +124,7 @@ export default function AIResearchDashboard() {
               </div>
             </section>
 
-            {/* Live reasoning */}
+            {/* Workflow */}
             <section className="col-span-5 rounded-3xl border border-white/10 bg-white/5 p-6">
               <h3 className="text-lg font-semibold">Live Agent Workflow</h3>
               <div className="mt-4 space-y-3">
