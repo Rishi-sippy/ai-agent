@@ -1,54 +1,58 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from openai import OpenAI
 from tavily import TavilyClient
 from dotenv import load_dotenv
+from pathlib import Path
 import os
 
-load_dotenv()
+# ✅ Load env properly
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 app = FastAPI()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ✅ Initialize Tavily
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-
+# ✅ Request schema
 class ResearchRequest(BaseModel):
     query: str
 
 
+# ✅ Health check
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+# 🚀 MAIN RESEARCH ENDPOINT
 @app.post("/research")
 def research(data: ResearchRequest):
-  
-    search_results = tavily.search(
-        query=data.query,
-        max_results=5
-    )
+    try:
+        # 🔍 Step 1: Web search
+        search_results = tavily.search(
+            query=data.query,
+            max_results=5
+        )
 
+        # 🧠 Step 2: Mock AI summary (FREE MODE)
+        summary = f"""
+        🔎 Research Summary for: {data.query}
 
-    prompt = f"""
-    Research this topic and create an executive summary:
-    {data.query}
+        - This is a simulated AI-generated report.
+        - The system successfully fetched real-time web data.
+        - Sources are analyzed and structured below.
 
-    Sources:
-    {search_results}
-    """
+        👉 You can replace this with OpenAI/Groq later.
+        """
 
-    response = client.chat.completions.create(
-        model="gpt-4.1",
-        messages=[
-            {"role": "system", "content": "You are a senior market research analyst."},
-            {"role": "user", "content": prompt},
-        ],
-    )
+        # ✅ Final response
+        return {
+            "query": data.query,
+            "summary": summary.strip(),
+            "sources": search_results.get("results", [])
+        }
 
-    return {
-        "query": data.query,
-        "summary": response.choices[0].message.content,
-        "sources": search_results,
-    }
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
