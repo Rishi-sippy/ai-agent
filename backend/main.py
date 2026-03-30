@@ -24,13 +24,13 @@ def health():
 
 @app.post("/research")
 def research(data: ResearchRequest):
-    # Step 1: search web
+  
     search_results = tavily.search(
         query=data.query,
         max_results=5
     )
 
-    # Step 2: summarize with AI
+
     prompt = f"""
     Research this topic and create an executive summary:
     {data.query}
