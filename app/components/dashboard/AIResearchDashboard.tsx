@@ -1,19 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AIResearchDashboard() {
   const [query, setQuery] = useState('')
   const [streamText, setStreamText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  const handleSearch = async () => {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleSearch = () => {
     if (!query) return
 
     setStreamText('')
     setIsStreaming(true)
 
-    const eventSource = new EventSource(`http://localhost:8000/research-stream?query=${encodeURIComponent(query)}`)
+    const eventSource = new EventSource(`http://127.0.0.1:8000/research-stream?query=${encodeURIComponent(query)}`)
 
     eventSource.onmessage = (event) => {
       setStreamText((prev) => prev + event.data)
@@ -24,6 +29,8 @@ export default function AIResearchDashboard() {
       setIsStreaming(false)
     }
   }
+
+  if (!mounted) return null // 🔥 prevents hydration error
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -51,10 +58,10 @@ export default function AIResearchDashboard() {
             </button>
           </div>
 
-          {/* Agent status */}
-          {isStreaming && <div className="mt-4 text-sm text-slate-400">⚡ Agent is working...</div>}
+          {/* Status */}
+          {isStreaming && <div className="mt-4 text-sm text-slate-400 animate-pulse">⚡ Agent is working...</div>}
 
-          {/* Streaming result */}
+          {/* Output */}
           {(streamText || isStreaming) && (
             <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6">
               <h3 className="text-lg font-semibold mb-4">Live Research</h3>

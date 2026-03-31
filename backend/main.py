@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from tavily import TavilyClient
 from dotenv import load_dotenv
 from pathlib import Path
@@ -13,10 +13,10 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 app = FastAPI()
 
-# CORS (important)
+# ✅ CORS (IMPORTANT for SSE)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,7 +25,6 @@ app.add_middleware(
 # Tavily
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-# Request schema
 class ResearchRequest(BaseModel):
     query: str
 
@@ -35,13 +34,13 @@ def health():
     return {"status": "ok"}
 
 
-# 🔥 STREAMING ENDPOINT
+# 🔥 FINAL STREAMING ENDPOINT
 @app.get("/research-stream")
 def research_stream(query: str):
 
     def generate():
         try:
-            # Step 1: simulate agent steps
+            # Step 1: agent steps
             steps = [
                 "🔍 Searching web...\n",
                 "📊 Analyzing sources...\n",
@@ -53,26 +52,26 @@ def research_stream(query: str):
                 yield f"data: {step}\n\n"
                 time.sleep(0.7)
 
-            # Step 2: real search (optional)
+            # Step 2: Tavily search
             try:
                 search_results = tavily.search(query=query, max_results=5)
                 sources = search_results.get("results", [])
             except:
                 sources = []
 
-            # Step 3: final summary (mock AI)
+            # Step 3: summary
             final_text = f"""
 Research Summary for: {query}
 
 - AI-powered traffic systems are rapidly growing in India
-- Government adoption + smart city initiatives increasing
+- Smart city adoption is increasing
 - Key companies: Nayan Technologies, Vehant, Staqu
-- Market expected to expand with AI-driven surveillance
+- Market growth driven by AI surveillance & analytics
 
 Sources:
 """
 
-            # Stream summary typing
+            # Stream typing
             for char in final_text:
                 yield f"data: {char}\n\n"
                 time.sleep(0.01)
@@ -82,9 +81,17 @@ Sources:
                 line = f"\n• {src.get('title')} ({src.get('url')})\n"
                 for char in line:
                     yield f"data: {char}\n\n"
-                    time.sleep(0.005)
+                    time.sleep(0.003)
 
         except Exception as e:
             yield f"data: Error: {str(e)}\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
