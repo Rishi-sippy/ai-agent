@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 app = FastAPI()
 
-# ✅ CORS (IMPORTANT for SSE)
+# ✅ CORS (important for EventSource)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -22,8 +22,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Tavily
+# Tavily client
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+
 
 class ResearchRequest(BaseModel):
     query: str
@@ -40,51 +41,56 @@ def research_stream(query: str):
 
     def generate():
         try:
-            # Step 1: agent steps
+            # 🧠 Step 1: Agent thinking steps
             steps = [
-                "🔍 Searching web...\n",
-                "📊 Analyzing sources...\n",
-                "🧠 Extracting insights...\n",
-                "✍️ Writing report...\n\n"
+                "🔍 Searching web...",
+                "📊 Analyzing sources...",
+                "🧠 Extracting insights...",
+                "✍️ Writing report..."
             ]
 
             for step in steps:
                 yield f"data: {step}\n\n"
                 time.sleep(0.7)
 
-            # Step 2: Tavily search
+            # 🌐 Step 2: Tavily search
             try:
                 search_results = tavily.search(query=query, max_results=5)
                 sources = search_results.get("results", [])
-            except:
+            except Exception as e:
                 sources = []
+                yield f"data: ⚠️ Tavily error: {str(e)}\n\n"
 
-            # Step 3: summary
-            final_text = f"""
+            # 📝 Step 3: Summary
+            summary = f"""
 Research Summary for: {query}
 
 - AI-powered traffic systems are rapidly growing in India
-- Smart city adoption is increasing
+- Smart city adoption is increasing across major cities
 - Key companies: Nayan Technologies, Vehant, Staqu
-- Market growth driven by AI surveillance & analytics
+- Growth driven by AI surveillance and analytics
 
 Sources:
 """
 
-            # Stream typing
-            for char in final_text:
+            # ✍️ Stream summary (typing effect)
+            for char in summary:
                 yield f"data: {char}\n\n"
                 time.sleep(0.01)
 
-            # Stream sources
+            # 🔗 Step 4: Stream sources
             for src in sources:
                 line = f"\n• {src.get('title')} ({src.get('url')})\n"
                 for char in line:
                     yield f"data: {char}\n\n"
                     time.sleep(0.003)
 
+            # ✅ END SIGNAL (VERY IMPORTANT)
+            yield "data: [DONE]\n\n"
+
         except Exception as e:
             yield f"data: Error: {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate(),
@@ -92,6 +98,6 @@ Sources:
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
+            "X-Accel-Buffering": "no",  # prevents buffering
         },
     )
