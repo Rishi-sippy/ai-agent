@@ -63,15 +63,15 @@ def research_stream(query: str):
 
             # 📝 Step 3: Summary
             summary = f"""
-## 📊 Research Summary: {query}
+            ## 📊 Research Summary: {query}
 
-- AI-powered traffic systems are rapidly growing in India
-- Smart city adoption is increasing across major cities
-- Key companies: Nayan Technologies, Vehant, Staqu
-- Growth driven by AI surveillance and analytics
+            - AI-powered traffic systems are rapidly growing in India
+            - Smart city adoption is increasing across major cities
+            - Key companies: Nayan Technologies, Vehant, Staqu
+            - Growth driven by AI surveillance and analytics
 
-## 🔗 Sources:
-"""
+            ## 🔗 Sources:
+            """
 
             # ✍️ Typing effect
             for char in summary:
