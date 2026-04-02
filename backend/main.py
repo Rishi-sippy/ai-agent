@@ -13,10 +13,10 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 app = FastAPI()
 
-# ✅ CORS (important for EventSource)
+# ✅ CORS (important for frontend + SSE)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],  # ⚠️ change in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,7 +35,7 @@ def health():
     return {"status": "ok"}
 
 
-# 🔥 FINAL STREAMING ENDPOINT
+# 🚀 STREAMING ENDPOINT (FINAL)
 @app.get("/research-stream")
 def research_stream(query: str):
 
@@ -46,12 +46,12 @@ def research_stream(query: str):
                 "🔍 Searching web...",
                 "📊 Analyzing sources...",
                 "🧠 Extracting insights...",
-                "✍️ Writing report..."
+                "✍️ Writing report...\n\n"
             ]
 
             for step in steps:
                 yield f"data: {step}\n\n"
-                time.sleep(0.7)
+                time.sleep(0.6)
 
             # 🌐 Step 2: Tavily search
             try:
@@ -63,41 +63,42 @@ def research_stream(query: str):
 
             # 📝 Step 3: Summary
             summary = f"""
-Research Summary for: {query}
+## 📊 Research Summary: {query}
 
 - AI-powered traffic systems are rapidly growing in India
 - Smart city adoption is increasing across major cities
 - Key companies: Nayan Technologies, Vehant, Staqu
 - Growth driven by AI surveillance and analytics
 
-Sources:
+## 🔗 Sources:
 """
 
-            # ✍️ Stream summary (typing effect)
+            # ✍️ Typing effect
             for char in summary:
                 yield f"data: {char}\n\n"
-                time.sleep(0.01)
+                time.sleep(0.008)
 
-            # 🔗 Step 4: Stream sources
+            # 🔗 Step 4: Sources streaming
             for src in sources:
                 line = f"\n• {src.get('title')} ({src.get('url')})\n"
                 for char in line:
                     yield f"data: {char}\n\n"
-                    time.sleep(0.003)
+                    time.sleep(0.002)
 
-            # ✅ END SIGNAL (VERY IMPORTANT)
+            # ✅ DONE SIGNAL
             yield "data: [DONE]\n\n"
 
         except Exception as e:
-            yield f"data: Error: {str(e)}\n\n"
+            yield f"data: ❌ Error: {str(e)}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
         headers={
+            "Access-Control-Allow-Origin": "*",   # 🔥 FIX FOR CORS SSE
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # prevents buffering
+            "X-Accel-Buffering": "no",
         },
     )
